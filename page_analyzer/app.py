@@ -12,6 +12,7 @@ from flask import (
 )
 import psycopg2
 import os
+import requests
 
 load_dotenv()
 
