@@ -1,5 +1,20 @@
 CREATE TABLE urls(
-    id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    name text NOT NULL,
+    id bigint GENERATED ALWAYS AS IDENTITY,
+    name VARCHAR(255) UNIQUE NOT NULL,
     created_at timestamp DEFAULT now(),
-)
+    PRIMARY KEY(id)
+);
+
+CREATE TABLE url_checks(
+    id bigint GENERATED ALWAYS AS IDENTITY,
+    url_id FOREIGN KEY REFERENCES urls.id,
+    status_code int,
+    h1 varchar(550),
+    title varchar(550),
+    description varchar(550),
+    created_at timestamp DEFAULT now(),
+    PRIMARY KEY(id),
+    CONSTRAINT url_checks_urls_id_fk
+      FOREIGN KEY(url_id)
+	  REFERENCES urls(id)
+);
