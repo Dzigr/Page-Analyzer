@@ -35,8 +35,13 @@ def post_url():
 
 
 @app.route('/urls/<int:id>', methods=['GET'])
-def show_url():
+def show_url(id):
     return render_template('url_detail.html')
+
+
+@app.route('/urls/<int:id>/checks', methods=['POST'])
+def check_url(id):
+    pass
 
 
 @app.errorhandler(404)
