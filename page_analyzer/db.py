@@ -32,14 +32,14 @@ def launch_connection():
 class UrlDatabase(object):
     """Storage url data."""
 
-    def save(self, url_data):
+    def save(self, url_data: dict) -> int:
         """Save url data.
 
         Parameters:
             url_data: page url.
 
         Returns:
-            record: id of stored url.
+            id of stored url.
         """
         with launch_connection() as connection:
             with connection.cursor() as cursor:
@@ -57,7 +57,7 @@ class UrlDatabase(object):
                 connection.commit()
             return record[0]
 
-    def delete(self, url_id):
+    def delete(self, url_id: int) -> None:
         """Delete url data from table.
 
         Parameters:
@@ -68,7 +68,7 @@ class UrlDatabase(object):
                 cursor.execute('DELETE FROM urls WHERE id=%s;', (url_id,))
                 connection.commit()
 
-    def find_all(self, limit=10):
+    def find_all(self, limit: int = 10) -> dict:
         """Find all urls data.
 
         Parameters:
@@ -94,11 +94,45 @@ class UrlDatabase(object):
                 )
                 return cursor.fetchall()
 
+    def find_url_id(self, url_id: int) -> dict:
+        """Return url data.
+
+        Parameters:
+            url_id: page url.
+
+        Returns:
+            stored url data.
+        """
+        with launch_connection() as connection:
+            with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    'SELECT * FROM urls WHERE id = %s;',
+                    (url_id,),
+                )
+                return cursor.fetchone()
+
+    def find_url_name(self, url_name: str) -> dict:
+        """Return url data.
+
+        Parameters:
+            url_name: page url.
+
+        Returns:
+            stored url data.
+        """
+        with launch_connection() as connection:
+            with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    'SELECT * FROM urls WHERE name = %s;',
+                    (url_name,),
+                )
+                return cursor.fetchone()
+
 
 class UrlCheckDatabase(object):
     """Storage url checks data."""
 
-    def save_check(self, url_id: int, check_data: dict):
+    def save_check(self, url_id: int, check_data: dict) -> None:
         """Save url checking data.
 
         Parameters:
@@ -132,7 +166,7 @@ class UrlCheckDatabase(object):
                 )
                 connection.commit()
 
-    def find_all_checks(self, url_id):
+    def find_all_checks(self, url_id: int) -> dict:
         """Find all url checking data.
 
         Parameters:
