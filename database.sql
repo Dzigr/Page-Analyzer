@@ -17,4 +17,6 @@ CREATE TABLE IF NOT EXISTS url_checks(
     CONSTRAINT url_checks_urls_id_fk
         FOREIGN KEY(url_id)
         REFERENCES urls(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
 );

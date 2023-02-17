@@ -68,19 +68,31 @@ class UrlDatabase(object):
                 cursor.execute('DELETE FROM urls WHERE id=%s;', (url_id,))
                 connection.commit()
 
-    def find_all(self):
+    def find_all(self, limit=10):
         """Find all urls data.
 
+        Parameters:
+            limit: urls row on a page.
+
         Returns:
-            records: all urls data.
+            selected urls data.
         """
         with launch_connection() as connection:
             with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-                cursor.execute(
-                    'SELECT id, name FROM urls ORDER BY id DESC;',
+                cursor.execute(  # noqa: WPS462
+                    """
+                    SELECT urls.name, ch.status_code, ch.url_id, ch.created_at
+                    FROM urls
+                    JOIN url_checks as ch
+                    ON ch.url_id = urls.id
+                    AND ch.created_at IN (
+                    SELECT MAX(created_at) FROM url_checks GROUP BY url_id)
+                    ORDER BY url_id DESC
+                    LIMIT %s;
+                    """,
+                    (limit, ),
                 )
-                records = cursor.fetchall()
-            return records
+                return cursor.fetchall()
 
 
 class UrlCheckDatabase(object):
@@ -111,10 +123,10 @@ class UrlCheckDatabase(object):
                     VALUES(%s, %s, %s, %s, %s, %s);""",
                     (
                         url_id,
-                        check_data.get('status_code'),
-                        check_data.get('h1'),
-                        check_data.get('title'),
-                        check_data.get('description'),
+                        check_data.get('status_code', ''),
+                        check_data.get('h1', ''),
+                        check_data.get('title', ''),
+                        check_data.get('description', ''),
                         str(datetime.now()),
                     ),
                 )
@@ -131,8 +143,11 @@ class UrlCheckDatabase(object):
         """
         with launch_connection() as connection:
             with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-                cursor.execute(
-                    'SELECT * FROM url_checks WHERE url_id=%s',
+                cursor.execute(  # noqa: WPS462
+                    """
+                    SELECT * FROM url_checks
+                    WHERE url_id=%s ORDER BY created_at DESC;
+                    """,
                     (url_id,),
                 )
                 return cursor.fetchall()
