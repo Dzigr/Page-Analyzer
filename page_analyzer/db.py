@@ -2,9 +2,11 @@
 
 import os
 from contextlib import contextmanager
+from datetime import datetime
 
 import psycopg2
 from dotenv import load_dotenv
+from psycopg2.extras import RealDictCursor
 
 load_dotenv()
 
@@ -12,16 +14,70 @@ DATABASE_URL = os.getenv('DATABASE_URL')
 
 
 @contextmanager
-def get_connection():
+def launch_connection():
     """Connect with database generator.
 
     Yields:
         connection with database
     """
     connection = None
-    try:
+    try:  # noqa: WPS229
         connection = psycopg2.connect(DATABASE_URL)
         yield connection
     finally:
         if connection:
             connection.close()
+
+
+class UrlDatabase(object):
+    """Storage url data."""
+
+    def save(self, url_data):
+        """Save url data.
+
+        Parameters:
+            url_data: page url.
+
+        Returns:
+            record: id of stored url.
+        """
+        with launch_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(  # noqa: WPS462
+                    """
+                    INSERT INTO urls(name, created_at)
+                    VALUES(%s, %s) RETURNING id;
+                    """,
+                    (
+                        url_data.get('name'),
+                        str(datetime.now()),
+                    ),
+                )
+                record = cursor.fetchone()
+                connection.commit()
+            return record[0]
+
+    def delete(self, url_id):
+        """Delete url data from table.
+
+        Parameters:
+            url_id: page url.
+        """
+        with launch_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute('DELETE FROM urls WHERE id=%s;', (url_id,))
+                connection.commit()
+
+    def find_all(self):
+        """Find all urls data.
+
+        Returns:
+            records: all urls data.
+        """
+        with launch_connection() as connection:
+            with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    'SELECT id, name FROM urls ORDER BY id DESC;',
+                )
+                records = cursor.fetchall()
+            return records
