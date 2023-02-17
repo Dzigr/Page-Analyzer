@@ -81,3 +81,58 @@ class UrlDatabase(object):
                 )
                 records = cursor.fetchall()
             return records
+
+
+class UrlCheckDatabase(object):
+    """Storage url checks data."""
+
+    def save_check(self, url_id: int, check_data: dict):
+        """Save url checking data.
+
+        Parameters:
+            url_id: url id.
+            check_data: data after checking:
+
+                        status_code, h1, title,
+                        description.
+        """
+        with launch_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(  # noqa: WPS462
+                    """
+                    INSERT INTO
+                    url_checks(
+                        url_id,
+                        status_code,
+                        h1,
+                        title,
+                        description,
+                        created_at)
+                    VALUES(%s, %s, %s, %s, %s, %s);""",
+                    (
+                        url_id,
+                        check_data.get('status_code'),
+                        check_data.get('h1'),
+                        check_data.get('title'),
+                        check_data.get('description'),
+                        str(datetime.now()),
+                    ),
+                )
+                connection.commit()
+
+    def find_all_checks(self, url_id):
+        """Find all url checking data.
+
+        Parameters:
+            url_id: page url.
+
+        Returns:
+            data of stored url checking.
+        """
+        with launch_connection() as connection:
+            with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    'SELECT * FROM url_checks WHERE url_id=%s',
+                    (url_id,),
+                )
+                return cursor.fetchall()
