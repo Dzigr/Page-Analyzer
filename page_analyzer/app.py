@@ -10,14 +10,15 @@ from flask import (
     request,
     url_for,
 )
-import psycopg2
+import validators.url as url_validator
 import os
 import requests
+from db import UrlCheckDatabase, UrlDatabase
 
 load_dotenv()
 
-DATABASE_URL = os.getenv('DATABASE_URL')
 app = Flask(__name__)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
 
 @app.route('/')
@@ -27,12 +28,27 @@ def index():
 
 @app.route('/urls', methods=['GET'])
 def show_urls():
-    return render_template('urls.html')
+    url_records = UrlDatabase().find_all()
+    return render_template(
+        'urls.html',
+        records=url_records,
+    )
 
 
 @app.route('/urls', methods=['POST'])
 def post_url():
-    pass
+    data = request.form.get('url')
+    print(data)
+    # Добавить нормализацию - urlparce
+    if not url_validator(data):
+        flash('Некорректный URL', category='danger')
+        if len(data) > 255:
+            flash('URL превышает 255 символов', category='danger')
+        elif len(data) > 255:
+            flash('URL обязателен', category='danger')
+    # flash('Страница уже существует')
+    # flash(Страница успешно добавлена, message='success')
+    return redirect(url_for('show_urls'))
 
 
 @app.route('/urls/<int:id>', methods=['GET'])
@@ -42,6 +58,8 @@ def show_url(id):
 
 @app.route('/urls/<int:id>/checks', methods=['POST'])
 def check_url(id):
+    # flash(Страница успешно проверена)
+    # flash(Произошла ошибка при проверке)
     pass
 
 
@@ -51,3 +69,7 @@ def show_error_page(error):
         'page404.html',
         title='Страница не найдена',
     )
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
