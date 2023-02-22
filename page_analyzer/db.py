@@ -21,7 +21,7 @@ def launch_connection():
         connection with database
     """
     connection = None
-    try:  # noqa: WPS229
+    try:
         connection = psycopg2.connect(DATABASE_URL)
         yield connection
     finally:
@@ -43,7 +43,7 @@ class UrlDatabase(object):
         """
         with launch_connection() as connection:
             with connection.cursor() as cursor:
-                cursor.execute(  # noqa: WPS462
+                cursor.execute(
                     """
                     INSERT INTO urls(name, created_at)
                     VALUES(%s, %s) RETURNING id;
@@ -79,7 +79,7 @@ class UrlDatabase(object):
         """
         with launch_connection() as connection:
             with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-                cursor.execute(  # noqa: WPS462
+                cursor.execute(
                     """
                     SELECT urls.name, ch.status_code, ch.url_id, ch.created_at
                     FROM urls
@@ -144,7 +144,7 @@ class UrlCheckDatabase(object):
         """
         with launch_connection() as connection:
             with connection.cursor() as cursor:
-                cursor.execute(  # noqa: WPS462
+                cursor.execute(
                     """
                     INSERT INTO
                     url_checks(

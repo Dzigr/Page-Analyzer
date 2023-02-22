@@ -25,5 +25,3 @@ def get_page_data(page_content: str) -> dict[str]:
             page_data[tag] = found_data.get_text() or found_data.get('content')
 
     return page_data
-
-
