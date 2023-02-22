@@ -1,6 +1,8 @@
-"""Flask app module"""
+"""Flask app module."""
+import os
 from dotenv import load_dotenv
 from flask import (
+    abort,
     Flask,
     flash,
     redirect,
@@ -8,10 +10,10 @@ from flask import (
     request,
     url_for,
 )
-from validator import validate, normalize
-import os
+from url_utilities import validate, normalize
 import requests
 from db import UrlCheckDatabase, UrlDatabase
+from page_parser import get_page_data
 
 load_dotenv()
 
@@ -56,7 +58,7 @@ def post_url():  # noqa: WPS210
             return redirect(
                 url_for(
                     'show_url',
-                    id=existing_record.get('id'),
+                    record_id=existing_record.get('id'),
                 ),
             )
 
@@ -64,7 +66,7 @@ def post_url():  # noqa: WPS210
         return redirect(
             url_for(
                 'show_url',
-                id=repo.save({'name': normalized_url}),
+                record_id=repo.save({'name': normalized_url}),
             ),
         )
     except Exception as ex:
@@ -75,16 +77,41 @@ def post_url():  # noqa: WPS210
         return redirect(url_for('index'))
 
 
-@app.route('/urls/<int:id>', methods=['GET'])
-def show_url(id):
-    return render_template('url_detail.html')
+@app.route('/urls/<int:record_id>', methods=['GET'])
+def show_url(record_id):
+    repo = UrlDatabase()
+    url_record = repo.find_url_id(record_id)
+    if not url_record:
+        return abort(404)
+
+    url_checks = UrlCheckDatabase().find_all_checks(record_id)
+    return render_template(
+        'url_detail.html',
+        record=url_record,
+        url_checks=url_checks,
+    )
 
 
-@app.route('/urls/<int:id>/checks', methods=['POST'])
-def check_url(id):
-    # flash(Страница успешно проверена)
-    # flash(Произошла ошибка при проверке)
-    pass
+@app.route('/urls/<int:record_id>/checks', methods=['POST'])
+def check_url(record_id):
+    url_record = UrlDatabase().find_url_id(record_id)
+
+    if not url_record:
+        return abort(404)
+
+    try:
+        response = requests.get(url_record.get('name'))
+        response.raise_for_status()
+    except requests.exceptions.RequestException:
+        flash('Произошла ошибка при проверке', 'danger')
+        return redirect(url_for('show_url', record_id=record_id))
+
+    checks = UrlCheckDatabase()
+    new_check = {'status_code': response.status_code}
+    new_check.update(get_page_data(response.content.decode()))
+    checks.save_check(record_id, new_check)
+    flash('Страница успешно проверена', 'success')
+    return redirect(url_for('show_url', record_id=record_id))
 
 
 @app.errorhandler(404)
